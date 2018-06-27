@@ -24,6 +24,6 @@ data class SensorData(var v: Float) {
     private var value: Float = v
 
     fun stringWithUnit(): String {
-        return String.format("%d", value)
+        return String.format("%f", value)
     }
 }
