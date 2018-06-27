@@ -36,33 +36,33 @@ import jp.lionas.androidthings.sensor.mcp3008driver.databinding.ActivityHomeBind
 class HomeActivity : Activity(), SensorEventListener {
 
     companion object {
-        const val DELAY_MSECS = 180000L // 3min
+        const val DELAY_MIL_SECS = 60000L // 1min
     }
 
     private val callback = SensorCallback()
     private lateinit var sensorManager: SensorManager
     private lateinit var binding: ActivityHomeBinding
-    private lateinit var sensorDriver: MCP3008Driver
+    private lateinit var driver: MCP3008Driver
     private val handler = Handler()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_home)
-        binding.sensor = SensorData(0f)
+        binding.data = SensorData(0f)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager.registerDynamicSensorCallback(callback)
-        sensorDriver = MCP3008Driver()
-        sensorDriver.register()
+        driver = MCP3008Driver()
+        driver.register()
     }
 
     override fun onDestroy() {
         sensorManager.unregisterDynamicSensorCallback(callback)
-        sensorDriver.unregister()
+        driver.unregister()
         super.onDestroy()
     }
 
     private val diveIntoLowPowerMode: Runnable = Runnable {
-        sensorDriver.setLowPowerMode(true)
+        driver.setLowPowerMode(true)
     }
 
     private inner class SensorCallback : DynamicSensorCallback() {
@@ -77,7 +77,7 @@ class HomeActivity : Activity(), SensorEventListener {
                 )
 
                 // the mode is shifted to the low power mode
-                handler.postDelayed(diveIntoLowPowerMode, DELAY_MSECS)
+                handler.postDelayed(diveIntoLowPowerMode, DELAY_MIL_SECS)
             }
         }
 
@@ -93,7 +93,7 @@ class HomeActivity : Activity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            binding.sensor = SensorData(event.values[0])
+            binding.data = SensorData(event.values[0])
         }
     }
 

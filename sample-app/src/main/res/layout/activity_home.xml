@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
     <data>
-        <variable name="sensor" type="jp.lionas.androidthings.sensor.mcp3008driver.SensorData" />
+        <variable name="data" type="jp.lionas.androidthings.sensor.mcp3008driver.SensorData" />
     </data>
     <android.support.constraint.ConstraintLayout
         xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -14,7 +14,7 @@
             android:id="@+id/sensorValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@{sensor.stringWithUnit()}"
+            android:text="@{data.stringWithUnit()}"
             android:textSize="96sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"

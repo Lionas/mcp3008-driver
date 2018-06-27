@@ -7,6 +7,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
 import org.mockito.Mock
+import org.mockito.Mockito.doNothing
+import org.mockito.Mockito.doReturn
+import org.mockito.Mockito.doThrow
+import org.mockito.Mockito.spy
+import org.mockito.Mockito.times
+import org.mockito.Mockito.verify
 import org.mockito.junit.MockitoJUnit
 import java.io.IOException
 
@@ -81,33 +87,73 @@ class MCP3008UnitTest {
         assertEquals(sensor.mMisoPin, null)
     }
 
-    @Test(expected = NullPointerException::class)
-    fun registerExpectedNullPointerException() {
-        val sensor = MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
-                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL)
+    @Test
+    fun register() {
+        val mockSensor = spy(MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
+                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL))
+        mockSensor.peripheralManager = mockPeripheralManager
+
+        doReturn(mockCsGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CS)
+        doReturn(mockClockGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CLOCK)
+        doReturn(mockMosInGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_IN)
+        doReturn(mockMosOutGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_OUT)
+
+        doNothing().`when`(mockCsGpio).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
+        doNothing().`when`(mockClockGpio).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
+        doNothing().`when`(mockMosInGpio).setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
+        doNothing().`when`(mockMosOutGpio).setDirection(Gpio.DIRECTION_IN)
+
+        mockSensor.register()
+    }
+
+    @Test(expected = IOException::class)
+    fun registerExpectedIOException() {
+        val sensor = spy(MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
+                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL))
         sensor.peripheralManager = mockPeripheralManager
+
+        doThrow(IOException()).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CS)
+        doThrow(IOException()).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CLOCK)
+        doThrow(IOException()).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_IN)
+        doThrow(IOException()).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_OUT)
+
         sensor.register()
     }
 
-    @Test(expected = RuntimeException::class)
-    fun registerExpectedRuntimeException() {
-        val sensor = MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
-                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL)
-        sensor.peripheralManager = null
+    @Test(expected = NullPointerException::class)
+    fun registerExpectedNullPointerException() {
+        val sensor = spy(MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
+                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL))
+        sensor.peripheralManager = mockPeripheralManager
         sensor.register()
     }
 
     @Test
     fun readAdc() {
-        val sensor = MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
-                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL)
-        sensor.peripheralManager = mockPeripheralManager
-        sensor.mCsPin = mockCsGpio
-        sensor.mClockPin = mockClockGpio
-        sensor.mMosiPin = mockMosInGpio
-        sensor.mMisoPin = mockMosOutGpio
-        val value = sensor.readAdc()
-        assertEquals(0, value)
+        val mockSensor = spy(MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
+                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL))
+        mockSensor.peripheralManager = mockPeripheralManager
+
+        doReturn(mockCsGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CS)
+        doReturn(mockClockGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CLOCK)
+        doReturn(mockMosInGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_IN)
+        doReturn(mockMosOutGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_OUT)
+        doReturn(100).`when`(mockSensor).valueFromSelectedChannel
+
+        mockSensor.register()
+        val value = mockSensor.readAdc()
+
+        verify(mockSensor, times(1)).initReadState()
+        verify(mockSensor, times(1)).initChannelSelect(0)
+        assertEquals(100, value)
+    }
+
+    @Test(expected = NullPointerException::class)
+    fun readAdc_withoutRegister() {
+        val mockSensor = spy(MCP3008(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN,
+                DEFAULT_PIN_MOS_OUT, DEFAULT_CHANNEL))
+        mockSensor.peripheralManager = mockPeripheralManager
+        mockSensor.readAdc()
     }
 
 }

@@ -50,7 +50,8 @@ class MCP3008(
     @VisibleForTesting
     var peripheralManager: PeripheralManager? = null
 
-    private val valueFromSelectedChannel: Int
+    @VisibleForTesting
+    val valueFromSelectedChannel: Int
         @Throws(IOException::class, NullPointerException::class)
         get() {
             var value = 0x0
@@ -93,15 +94,17 @@ class MCP3008(
         return valueFromSelectedChannel
     }
 
+    @VisibleForTesting
     @Throws(IOException::class, NullPointerException::class)
-    private fun initReadState() {
+    fun initReadState() {
         mCsPin!!.value = true
         mClockPin!!.value = false
         mCsPin!!.value = false
     }
 
+    @VisibleForTesting
     @Throws(IOException::class, NullPointerException::class)
-    private fun initChannelSelect(channel: Int) {
+    fun initChannelSelect(channel: Int) {
         var command = channel
         command = command or 0x18 // start bit + single-ended bit
         command = command shl 0x3 // we only need to send 5 bits
