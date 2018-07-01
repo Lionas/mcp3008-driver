@@ -4,10 +4,10 @@ Analog to Digital Conveter sample for Android Things
 This Android Things sample demonstrates how to use a MCP3008(8-Channel 10-Bit A/D Converters) 
 and integrate them to the Android `SensorManager`.
 
-Screenshots
------------
-
-<img src="images/things_top.jpg" width="320px"> <img src="images/things_board.jpg" width="500px">
+<!-- Screenshots
+# -----------
+# <img src="images/things_top.jpg" width="320px"> <img src="images/things_board.jpg" width="500px">
+-->
 
 Pre-requisites
 --------------
@@ -20,8 +20,9 @@ Pre-requisites
 
 Schematics
 ----------
-
+<!--
 ![Schematics for NXP i.MX7D Starter Kit](images/mcp3008_scheme.png)
+-->
 
 - Data Sheets
   - [MCP3008][data-sheet-MCP3008]
