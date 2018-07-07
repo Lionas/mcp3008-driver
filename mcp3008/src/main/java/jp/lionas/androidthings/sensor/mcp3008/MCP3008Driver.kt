@@ -28,11 +28,8 @@ import java.util.*
  * @author Naoki Seto(@Lionas)
  */
 class MCP3008Driver(
-        cs: String = DEFAULT_PIN_CS,
-        clock: String = DEFAULT_PIN_CLOCK,
-        mosIn: String = DEFAULT_PIN_MOS_IN,
-        mosOut: String = DEFAULT_PIN_MOS_OUT,
-        channel: Int = DEFAULT_CHANNEL
+        channel: Int = DEFAULT_CHANNEL,
+        private val useSpi: Boolean = false
 ) : AutoCloseable {
 
     companion object {
@@ -42,13 +39,31 @@ class MCP3008Driver(
         const val DEFAULT_PIN_MOS_IN = "GPIO6_IO12"
         const val DEFAULT_PIN_MOS_OUT = "GPIO5_IO00"
         const val DEFAULT_CHANNEL = 0
+        const val DEFAULT_SPI_NAME = "SPI3.0"
     }
 
-    private val adc: ADConverter = MCP3008(cs, clock, mosIn, mosOut, channel)
+    private val adc: ADConverter = MCP3008(channel)
     private var userSensorDriver: CustomUserSensorDriver? = null
+
+    private var spiName: String = DEFAULT_SPI_NAME
+    private var cs: String = DEFAULT_PIN_CS
+    private var clock: String = DEFAULT_PIN_CLOCK
+    private var mosIn: String = DEFAULT_PIN_MOS_IN
+    private var mosOut: String = DEFAULT_PIN_MOS_OUT
 
     override fun close() {
         unregister()
+    }
+
+    fun setGpioPins(csPin: String, clockPin: String, mosiPin: String, misoPin: String) {
+        this.cs = csPin
+        this.clock = clockPin
+        this.mosIn = mosiPin
+        this.mosOut = misoPin
+    }
+
+    fun setSpiName(spiName: String) {
+        this.spiName = spiName
     }
 
     /**
@@ -57,6 +72,11 @@ class MCP3008Driver(
      */
     @Throws(IOException::class)
     fun register() {
+        if (useSpi) {
+            adc.setSpi(spiName)
+        } else {
+            adc.setGpioPorts(cs, clock, mosIn, mosOut)
+        }
         userSensorDriver = CustomUserSensorDriver()
         userSensorDriver?.let {
             adc.register()

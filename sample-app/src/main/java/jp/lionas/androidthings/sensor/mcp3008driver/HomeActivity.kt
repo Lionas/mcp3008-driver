@@ -48,10 +48,10 @@ class HomeActivity : Activity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_home)
-        binding.data = SensorData(0f)
+        binding.data = SensorData(0)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager.registerDynamicSensorCallback(callback)
-        driver = MCP3008Driver()
+        driver = MCP3008Driver(useSpi = true)
         driver.register()
     }
 
@@ -93,7 +93,7 @@ class HomeActivity : Activity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            binding.data = SensorData(event.values[0])
+            binding.data = SensorData(event.values[0].toInt())
         }
     }
 

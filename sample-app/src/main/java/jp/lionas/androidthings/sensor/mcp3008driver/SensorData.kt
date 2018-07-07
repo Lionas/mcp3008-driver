@@ -20,10 +20,10 @@ package jp.lionas.androidthings.sensor.mcp3008driver
  * Sensor Data Model
  * @author Naoki Seto(@Lionas)
  */
-data class SensorData(var v: Float) {
-    private var value: Float = v
+data class SensorData(var v: Int) {
+    private var value: Int = v
 
     fun stringWithUnit(): String {
-        return String.format("%f", value)
+        return String.format("%d", value)
     }
 }
