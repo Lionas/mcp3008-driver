@@ -26,7 +26,6 @@ import android.hardware.SensorManager
 import android.hardware.SensorManager.DynamicSensorCallback
 import android.os.Bundle
 import android.os.Handler
-import android.util.Log
 import com.google.android.things.contrib.driver.button.Button
 import com.google.android.things.contrib.driver.ht16k33.AlphanumericDisplay
 import com.google.android.things.contrib.driver.ht16k33.Ht16k33
@@ -45,52 +44,73 @@ class HomeActivity : Activity(), SensorEventListener {
 
     companion object {
         const val DELAY_MIL_SECS = 60000L // 1min
-        const val C = 262
-        const val D = 294
-        const val E = 330
-        const val F = 349
-        const val G = 392
-        const val A = 440
-        const val B = 494
     }
 
     private val callback = SensorCallback()
     private lateinit var sensorManager: SensorManager
     private lateinit var binding: ActivityHomeBinding
     private lateinit var driver: MCP3008Driver
-    private val handler = Handler()
-
     private lateinit var speaker: Speaker
-    private val sounds = listOf(C, D, E, F, G, A, B)
-    private val soundsStr = listOf("C", "D", "E", "F", "G", "A", "B")
-    private var prevSounds: Int = 0
-
-    private var currentStep: Int = 0
     private lateinit var buttonA: Button
     private lateinit var buttonB: Button
+    private lateinit var buttonC: Button
+    private var isPressedA: Boolean = false
     private var isPressedB: Boolean = false
-
+    private var isPressedC: Boolean = false
     private lateinit var ledRed: Gpio
-    private lateinit var ledBlue: Gpio
     private lateinit var ledGreen: Gpio
+    private lateinit var ledBlue: Gpio
     private lateinit var segment: AlphanumericDisplay
+    private lateinit var sound: Sound
+
+    private val handler = Handler()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_home)
-        binding.data = SensorData(soundsStr[prevSounds])
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager.registerDynamicSensorCallback(callback)
-        driver = MCP3008Driver(useSpi = true, channels = intArrayOf(0, 1))
+        initDevices()
+        binding.data = SensorData(sound.getCurrentKeyString())
+    }
+
+    private fun initDevices() {
+        initDriver()
+        initLed()
+        initSpeaker()
+        initButtons()
+        initSegment()
+    }
+
+    private fun initDriver() {
+        driver = MCP3008Driver(useSpi = true)
         driver.register()
+    }
+
+    private fun initLed() {
         ledRed = RainbowHat.openLedRed()
-        ledBlue = RainbowHat.openLedBlue()
         ledGreen = RainbowHat.openLedGreen()
+        ledBlue = RainbowHat.openLedBlue()
+    }
+
+    private fun initSpeaker() {
         speaker = RainbowHat.openPiezo()
+        sound = Sound(speaker)
+    }
+
+    private fun initButtons() {
         buttonA = RainbowHat.openButtonA()
         buttonA.setOnButtonEventListener { _, pressed ->
             ledRed.value = pressed
-            if (pressed) speaker.stop()
+            if (!isPressedA and pressed) {
+                isPressedA = true
+                sound.updateSemitone(true)
+                sound.play()
+            }
+            else if (isPressedA and !pressed) {
+                isPressedA = false
+                speaker.stop()
+            }
         }
 
         buttonB = RainbowHat.openButtonB()
@@ -98,7 +118,8 @@ class HomeActivity : Activity(), SensorEventListener {
             ledGreen.value = pressed
             if (!isPressedB and pressed) {
                 isPressedB = true
-                speaker.play(sounds[currentStep].toDouble())
+                sound.updateSemitone(false)
+                sound.play()
             }
             else if (isPressedB and !pressed) {
                 isPressedB = false
@@ -106,9 +127,25 @@ class HomeActivity : Activity(), SensorEventListener {
             }
         }
 
+        buttonC = RainbowHat.openButtonC()
+        buttonC.setOnButtonEventListener { _, pressed ->
+            if (!isPressedC and pressed) {
+                ledBlue.value = true
+                isPressedC = true
+                sound.updateOctave(true)
+            }
+            else if (isPressedC and pressed) {
+                ledBlue.value = false
+                isPressedC = false
+                sound.updateOctave(false)
+            }
+        }
+    }
+
+    private fun initSegment() {
         segment = RainbowHat.openDisplay()
         segment.setBrightness(Ht16k33.HT16K33_BRIGHTNESS_MAX)
-        segment.display(soundsStr[currentStep])
+        segment.display(sound.getCurrentKeyString())
         segment.setEnabled(true)
     }
 
@@ -152,15 +189,13 @@ class HomeActivity : Activity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            val value = event.values[0].toInt() + event.values[1].toInt()
-            currentStep = value / 170
-            if (isPressedB and(prevSounds != currentStep)) {
-                speaker.stop()
-                speaker.play(sounds[currentStep].toDouble())
-                prevSounds = currentStep
+            val sensorValue = it.values[0].toInt()
+            if (isPressedA || isPressedB) {
+                sound.playOnChanged(sensorValue)
             }
-            binding.data = SensorData(soundsStr[currentStep])
-            segment.display(soundsStr[currentStep])
+            val currentKeyStr = sound.updateKey(sensorValue)
+            binding.data = SensorData(currentKeyStr)
+            segment.display(currentKeyStr)
         }
     }
 
