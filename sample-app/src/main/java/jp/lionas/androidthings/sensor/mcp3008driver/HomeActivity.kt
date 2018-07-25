@@ -81,7 +81,7 @@ class HomeActivity : Activity(), SensorEventListener {
         binding.data = SensorData(soundsStr[prevSounds])
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager.registerDynamicSensorCallback(callback)
-        driver = MCP3008Driver(useSpi = true)
+        driver = MCP3008Driver(useSpi = true, channels = intArrayOf(0, 1))
         driver.register()
         ledRed = RainbowHat.openLedRed()
         ledBlue = RainbowHat.openLedBlue()
@@ -152,7 +152,7 @@ class HomeActivity : Activity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            val value = event.values[0].toInt()
+            val value = event.values[0].toInt() + event.values[1].toInt()
             currentStep = value / 170
             if (isPressedB and(prevSounds != currentStep)) {
                 speaker.stop()

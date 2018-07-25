@@ -28,7 +28,7 @@ import java.util.*
  * @author Naoki Seto(@Lionas)
  */
 class MCP3008Driver(
-        channel: Int = DEFAULT_CHANNEL,
+        val channels: IntArray = intArrayOf(DEFAULT_CHANNEL),
         private val useSpi: Boolean = false
 ) : AutoCloseable {
 
@@ -42,7 +42,7 @@ class MCP3008Driver(
         const val DEFAULT_SPI_NAME = "SPI3.0"
     }
 
-    private val adc: ADConverter = MCP3008(channel)
+    private val adc: ADConverter = MCP3008()
     private var userSensorDriver: CustomUserSensorDriver? = null
 
     private var spiName: String = DEFAULT_SPI_NAME
@@ -122,7 +122,12 @@ class MCP3008Driver(
 
         @Throws(IOException::class)
         override fun read(): UserSensorReading {
-            return UserSensorReading(floatArrayOf(adc.readAdc().toFloat()))
+            val intAdcArray = adc.readAdc(channels)
+            val floatAdcArray = FloatArray(intAdcArray.size)
+            for ((index, intAdc) in intAdcArray.withIndex()) {
+                floatAdcArray[index] = intAdc.toFloat()
+            }
+            return UserSensorReading(floatAdcArray)
         }
 
         // for Power Management

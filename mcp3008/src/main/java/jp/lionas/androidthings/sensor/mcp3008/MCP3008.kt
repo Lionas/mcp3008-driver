@@ -28,9 +28,7 @@ import java.io.IOException
  * Reference from https://github.com/PaulTR/AndroidThingsMCP3008ADC
  * @author Naoki Seto(@Lionas)
  */
-class MCP3008(
-        private val adcChannelPin: Int
-) : ADConverter, AutoCloseable {
+class MCP3008 : ADConverter, AutoCloseable {
 
     private var spiName: String? = null
     private lateinit var spiDevice: SpiDevice
@@ -110,22 +108,24 @@ class MCP3008(
     }
 
     @Throws(IOException::class, NullPointerException::class)
-    override fun readAdc(): Int {
-        if (adcChannelPin < 0 || adcChannelPin > 7) {
-            throw IOException("ADC channel must be between 0 and 7")
+    override fun readAdc(channels: IntArray): IntArray {
+        val results = IntArray(channels.size)
+        for ((index, channel) in channels.withIndex()) {
+            if (channel < 0 || channel > 7) {
+                throw IOException("ADC channel must be between 0 and 7")
+            }
+            results[index] = if (spiName !=  null) {
+                val transferData = createTransferData(channel)
+                val receivedData = ByteArray(3)
+                spiDevice.transfer(transferData, receivedData, receivedData.size)
+                extractReceivedData(receivedData)
+            } else {
+                initReadState()
+                initChannelSelect(channel)
+                valueFromSelectedChannel
+            }
         }
-
-        return if (spiName !=  null) {
-            val transferData = createTransferData(adcChannelPin)
-            val receivedData = ByteArray(3)
-            spiDevice.transfer(transferData, receivedData, receivedData.size)
-            extractReceivedData(receivedData)
-        } else {
-            initReadState()
-            initChannelSelect(adcChannelPin)
-            valueFromSelectedChannel
-        }
-
+        return results
     }
 
     private fun createTransferData(channel: Int): ByteArray {
