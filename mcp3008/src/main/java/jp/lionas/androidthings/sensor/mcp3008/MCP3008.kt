@@ -31,8 +31,7 @@ class MCP3008(
         private val csPin: String,
         private val clockPin: String,
         private val mosiPin: String,
-        private val misoPin: String,
-        private val adcChannelPin: Int
+        private val misoPin: String
 ) : ADConverter, AutoCloseable {
 
     @VisibleForTesting
@@ -85,13 +84,17 @@ class MCP3008(
     }
 
     @Throws(IOException::class, NullPointerException::class)
-    override fun readAdc(): Int {
-        if (adcChannelPin < 0 || adcChannelPin > 7) {
-            throw IOException("ADC channel must be between 0 and 7")
+    override fun readAdc(channels: IntArray): IntArray {
+        val results = IntArray(channels.size)
+        for ((index, channel) in channels.withIndex()) {
+            if (channel < 0 || channel > 7) {
+                throw IOException("ADC channel must be between 0 and 7")
+            }
+            initReadState()
+            initChannelSelect(channel)
+            results[index] = valueFromSelectedChannel
         }
-        initReadState()
-        initChannelSelect(adcChannelPin)
-        return valueFromSelectedChannel
+        return results
     }
 
     @VisibleForTesting

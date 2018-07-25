@@ -51,7 +51,7 @@ class HomeActivity : Activity(), SensorEventListener {
         binding.data = SensorData(0f)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         sensorManager.registerDynamicSensorCallback(callback)
-        driver = MCP3008Driver()
+        driver = MCP3008Driver(channels = intArrayOf(0, 1))
         driver.register()
     }
 
@@ -93,7 +93,7 @@ class HomeActivity : Activity(), SensorEventListener {
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
-            binding.data = SensorData(event.values[0])
+            binding.data = SensorData(event.values[0] + event.values[1])
         }
     }
 

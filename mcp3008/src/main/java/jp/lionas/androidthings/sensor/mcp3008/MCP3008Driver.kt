@@ -32,7 +32,7 @@ class MCP3008Driver(
         clock: String = DEFAULT_PIN_CLOCK,
         mosIn: String = DEFAULT_PIN_MOS_IN,
         mosOut: String = DEFAULT_PIN_MOS_OUT,
-        channel: Int = DEFAULT_CHANNEL
+        val channels: IntArray = intArrayOf(DEFAULT_CHANNEL)
 ) : AutoCloseable {
 
     companion object {
@@ -44,7 +44,7 @@ class MCP3008Driver(
         const val DEFAULT_CHANNEL = 0
     }
 
-    private val adc: ADConverter = MCP3008(cs, clock, mosIn, mosOut, channel)
+    private val adc: ADConverter = MCP3008(cs, clock, mosIn, mosOut)
     private var userSensorDriver: CustomUserSensorDriver? = null
 
     override fun close() {
@@ -102,7 +102,12 @@ class MCP3008Driver(
 
         @Throws(IOException::class)
         override fun read(): UserSensorReading {
-            return UserSensorReading(floatArrayOf(adc.readAdc().toFloat()))
+            val intAdcArray = adc.readAdc(channels)
+            val floatAdcArray = FloatArray(intAdcArray.size)
+            for ((index, intAdc) in intAdcArray.withIndex()) {
+                floatAdcArray[index] = intAdc.toFloat()
+            }
+            return UserSensorReading(floatAdcArray)
         }
 
         // for Power Management
