@@ -40,7 +40,7 @@ ext {
     libraryDescription = 'Analog to Digital Converter(MCP3008) Driver for Android Things'
     siteUrl = 'https://github.com/Lionas/mcp3008-driver'
     gitUrl = 'https://github.com/Lionas/mcp3008-driver.git'
-    libraryVersion = '0.1b'
+    libraryVersion = '1.0'
     developerId = 'lionas'
     developerName = 'Naoki Seto(@Lionas)'
     developerEmail = 'lionas.watanabe@gmail.com'

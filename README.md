@@ -32,9 +32,9 @@ private val mcp3008: MCP3008 = MCP3008()
 
 mcp3008.register()
 
-// Read the current value:
+// Read the current values:
 
-mcp3008.readAdc()
+mcp3008.readAdc(channels)
 
 // Close the dust sensor when finished:
 
