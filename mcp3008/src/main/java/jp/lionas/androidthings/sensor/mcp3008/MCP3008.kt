@@ -128,7 +128,8 @@ class MCP3008 : ADConverter, AutoCloseable {
         return results
     }
 
-    private fun createTransferData(channel: Int): ByteArray {
+    @VisibleForTesting
+    fun createTransferData(channel: Int): ByteArray {
         val txData = ByteArray(3)
         txData[0] = 0x01.toByte()
         txData[1] = (channel shl 0x4 or 0x80).toByte()
@@ -136,7 +137,8 @@ class MCP3008 : ADConverter, AutoCloseable {
         return txData
     }
 
-    private fun extractReceivedData(receivedData: ByteArray): Int {
+    @VisibleForTesting
+    fun extractReceivedData(receivedData: ByteArray): Int {
         return (receivedData[1].toInt() and 0x03 shl 0x08) or (receivedData[2].toInt() and 0xFF)
     }
 
