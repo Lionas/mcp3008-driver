@@ -6,5 +6,4 @@ interface ADConverter {
     fun close()
     fun unregister()
     fun setSpi(spiName: String)
-    fun setGpioPorts(csPin: String, clockPin: String, mosiPin: String, misoPin: String)
 }

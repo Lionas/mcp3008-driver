@@ -30,105 +30,45 @@ import java.io.IOException
  */
 class MCP3008 : ADConverter, AutoCloseable {
 
-    private var spiName: String? = null
+    private lateinit var spiName: String
     private lateinit var spiDevice: SpiDevice
-    private lateinit var csPin: String
-    private lateinit var clockPin: String
-    private lateinit var mosiPin: String
-    private lateinit var misoPin: String
-
-    @VisibleForTesting
-    var mCsPin: Gpio? = null
-
-    @VisibleForTesting
-    var mClockPin: Gpio? = null
-
-    @VisibleForTesting
-    var mMosiPin: Gpio? = null
-
-    @VisibleForTesting
-    var mMisoPin: Gpio? = null
 
     @VisibleForTesting
     var peripheralManager: PeripheralManager? = null
-
-    @VisibleForTesting
-    val valueFromSelectedChannel: Int
-        @Throws(IOException::class, NullPointerException::class)
-        get() {
-            var value = 0x0
-            for (i in 0..11) {
-                toggleClock()
-                value = value shl 0x1
-                if (mMisoPin!!.value) {
-                    value = value or 0x1
-                }
-            }
-            mCsPin!!.value = true
-            value = value shr 0x1 // first bit is 'null', so drop it
-
-            return value
-        }
 
     override fun setSpi(spiName: String) {
         this.spiName = spiName
     }
 
-    override fun setGpioPorts(csPin: String,
-                            clockPin: String,
-                            mosiPin: String,
-                            misoPin: String) {
-        this.csPin = csPin
-        this.clockPin = clockPin
-        this.mosiPin = mosiPin
-        this.misoPin = misoPin
-    }
-
-    @Throws(IOException::class, NullPointerException::class)
+    @Throws(IOException::class)
     override fun register() {
         if (peripheralManager == null) {
             peripheralManager = PeripheralManager.getInstance()
         }
-        if (spiName != null) {
-            spiDevice = peripheralManager!!.openSpiDevice(spiName)
-            spiDevice.setMode(SpiDevice.MODE0)
-            spiDevice.setFrequency(1350000) // 1.35MHz
-            spiDevice.setBitsPerWord(8)
-            spiDevice.setBitJustification(BIT_JUSTIFICATION_MSB_FIRST) // MSB first
-        } else {
-            mClockPin = peripheralManager!!.openGpio(clockPin)
-            mCsPin = peripheralManager!!.openGpio(csPin)
-            mMosiPin = peripheralManager!!.openGpio(mosiPin)
-            mMisoPin = peripheralManager!!.openGpio(misoPin)
-            mClockPin!!.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
-            mCsPin!!.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
-            mMosiPin!!.setDirection(Gpio.DIRECTION_OUT_INITIALLY_LOW)
-            mMisoPin!!.setDirection(Gpio.DIRECTION_IN)
-        }
+        spiDevice = peripheralManager!!.openSpiDevice(spiName)
+        spiDevice.setMode(SpiDevice.MODE0)
+        spiDevice.setFrequency(1350000) // 1.35MHz
+        spiDevice.setBitsPerWord(8)
+        spiDevice.setBitJustification(BIT_JUSTIFICATION_MSB_FIRST) // MSB first
     }
 
-    @Throws(IOException::class, NullPointerException::class)
+    @Throws(IOException::class)
     override fun readAdc(channels: IntArray): IntArray {
         val results = IntArray(channels.size)
         for ((index, channel) in channels.withIndex()) {
             if (channel < 0 || channel > 7) {
                 throw IOException("ADC channel must be between 0 and 7")
             }
-            results[index] = if (spiName !=  null) {
-                val transferData = createTransferData(channel)
-                val receivedData = ByteArray(3)
-                spiDevice.transfer(transferData, receivedData, receivedData.size)
-                extractReceivedData(receivedData)
-            } else {
-                initReadState()
-                initChannelSelect(channel)
-                valueFromSelectedChannel
-            }
+            val transferData = createTransferData(channel)
+            val receivedData = ByteArray(3)
+            spiDevice.transfer(transferData, receivedData, receivedData.size)
+            results[index] =extractReceivedData(receivedData)
         }
         return results
     }
 
-    private fun createTransferData(channel: Int): ByteArray {
+    @VisibleForTesting
+    fun createTransferData(channel: Int): ByteArray {
         val txData = ByteArray(3)
         txData[0] = 0x01.toByte()
         txData[1] = (channel shl 0x4 or 0x80).toByte()
@@ -136,36 +76,9 @@ class MCP3008 : ADConverter, AutoCloseable {
         return txData
     }
 
-    private fun extractReceivedData(receivedData: ByteArray): Int {
+    @VisibleForTesting
+    fun extractReceivedData(receivedData: ByteArray): Int {
         return (receivedData[1].toInt() and 0x03 shl 0x08) or (receivedData[2].toInt() and 0xFF)
-    }
-
-    @VisibleForTesting
-    @Throws(IOException::class, NullPointerException::class)
-    fun initReadState() {
-        mCsPin!!.value = true
-        mClockPin!!.value = false
-        mCsPin!!.value = false
-    }
-
-    @VisibleForTesting
-    @Throws(IOException::class, NullPointerException::class)
-    fun initChannelSelect(channel: Int) {
-        var command = channel
-        command = command or 0x18 // start bit + single-ended bit
-        command = command shl 0x3 // we only need to send 5 bits
-
-        for (i in 0..4) {
-            mMosiPin!!.value = command and 0x80 != 0x0
-            command = command shl 0x1
-            toggleClock()
-        }
-    }
-
-    @Throws(IOException::class, NullPointerException::class)
-    private fun toggleClock() {
-        mClockPin!!.value = true
-        mClockPin!!.value = false
     }
 
     override fun close() {
@@ -174,14 +87,7 @@ class MCP3008 : ADConverter, AutoCloseable {
 
     override fun unregister() {
         try {
-            mCsPin!!.close()
-            mClockPin!!.close()
-            mMisoPin!!.close()
-            mMosiPin!!.close()
-            mCsPin = null
-            mClockPin = null
-            mMisoPin = null
-            mMosiPin = null
+            spiDevice.close()
         } catch (ignored: IOException) {
         } catch (ignored: RuntimeException) {
         }
