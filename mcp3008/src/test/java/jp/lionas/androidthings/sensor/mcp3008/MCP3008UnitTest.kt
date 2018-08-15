@@ -1,6 +1,5 @@
 package jp.lionas.androidthings.sensor.mcp3008
 
-import com.google.android.things.pio.Gpio
 import com.google.android.things.pio.SpiDevice
 import com.google.android.things.pio.PeripheralManager
 import com.nhaarman.mockito_kotlin.*
@@ -24,18 +23,6 @@ class MCP3008UnitTest {
     private lateinit var mockSpiDevice: SpiDevice
 
     @Mock
-    private lateinit var mockCsGpio: Gpio
-
-    @Mock
-    private lateinit var mockClockGpio: Gpio
-
-    @Mock
-    private lateinit var mockMosInGpio: Gpio
-
-    @Mock
-    private lateinit var mockMosOutGpio: Gpio
-
-    @Mock
     private lateinit var mockPeripheralManager: PeripheralManager
 
     @Rule
@@ -47,30 +34,11 @@ class MCP3008UnitTest {
     var expectedException: ExpectedException = ExpectedException.none()
 
     companion object {
-        const val DEFAULT_PIN_CS = "GPIO1_IO10"
-        const val DEFAULT_PIN_CLOCK = "GPIO6_IO13"
-        const val DEFAULT_PIN_MOS_IN = "GPIO6_IO12"
-        const val DEFAULT_PIN_MOS_OUT = "GPIO5_IO00"
-        const val DEFAULT_CHANNEL = 0
         const val DEFAULT_SPI_NAME = "SPI3.0"
     }
 
     @Test
-    fun registerGpio() {
-        val mockSensor = spy(MCP3008())
-        mockSensor.setGpioPorts(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN, DEFAULT_PIN_MOS_OUT)
-        mockSensor.peripheralManager = mockPeripheralManager
-
-        doReturn(mockCsGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CS)
-        doReturn(mockClockGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CLOCK)
-        doReturn(mockMosInGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_IN)
-        doReturn(mockMosOutGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_OUT)
-
-        mockSensor.register()
-    }
-
-    @Test
-    fun registerSpi() {
+    fun register() {
         val mockSensor = spy(MCP3008())
         mockSensor.setSpi(DEFAULT_SPI_NAME)
         mockSensor.peripheralManager = mockPeripheralManager
@@ -83,41 +51,12 @@ class MCP3008UnitTest {
     @Test(expected = IOException::class)
     fun registerExpectedIOException() {
         val sensor = spy(MCP3008())
-        sensor.setGpioPorts(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN, DEFAULT_PIN_MOS_OUT)
+        sensor.setSpi(DEFAULT_SPI_NAME)
         sensor.peripheralManager = mockPeripheralManager
 
-        doThrow(IOException()).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_OUT)
+        doThrow(IOException()).`when`(mockPeripheralManager).openSpiDevice(DEFAULT_SPI_NAME)
 
         sensor.register()
-    }
-
-    @Test(expected = NullPointerException::class)
-    fun registerExpectedNullPointerException() {
-        val sensor = spy(MCP3008())
-        sensor.setGpioPorts(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN, DEFAULT_PIN_MOS_OUT)
-        sensor.peripheralManager = mockPeripheralManager
-        sensor.register()
-    }
-
-    @Test
-    fun readAdcGpio() {
-        val mockSensor = spy(MCP3008())
-        mockSensor.setGpioPorts(DEFAULT_PIN_CS, DEFAULT_PIN_CLOCK, DEFAULT_PIN_MOS_IN, DEFAULT_PIN_MOS_OUT)
-        mockSensor.peripheralManager = mockPeripheralManager
-
-        doReturn(mockCsGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CS)
-        doReturn(mockClockGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_CLOCK)
-        doReturn(mockMosInGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_IN)
-        doReturn(mockMosOutGpio).`when`(mockPeripheralManager).openGpio(DEFAULT_PIN_MOS_OUT)
-        doReturn(100).`when`(mockSensor).valueFromSelectedChannel
-
-        mockSensor.register()
-        val channels = intArrayOf(DEFAULT_CHANNEL)
-        val value = mockSensor.readAdc(channels)
-
-        verify(mockSensor, times(1)).initReadState()
-        verify(mockSensor, times(1)).initChannelSelect(0)
-        assertEquals(100, value[0])
     }
 
     @Test
@@ -149,7 +88,7 @@ class MCP3008UnitTest {
     }
 
     @Test
-    fun readAdcSpi() {
+    fun readAdc() {
         val mockSensor = spy(MCP3008())
         mockSensor.setSpi(DEFAULT_SPI_NAME)
         mockSensor.peripheralManager = mockPeripheralManager
@@ -175,58 +114,33 @@ class MCP3008UnitTest {
         assertEquals(0, actualValue[1])
     }
 
-    @Test(expected = NullPointerException::class)
-    fun readAdc_withoutRegister() {
-        val mockSensor = spy(MCP3008())
-        mockSensor.peripheralManager = mockPeripheralManager
-        val channels = intArrayOf(DEFAULT_CHANNEL)
-        mockSensor.readAdc(channels)
-    }
-
     @Test
     @Throws(IOException::class)
     fun unregister() {
-        val sensor = MCP3008()
-        sensor.mCsPin = mockCsGpio
-        sensor.mClockPin = mockClockGpio
-        sensor.mMosiPin = mockMosInGpio
-        sensor.mMisoPin = mockMosOutGpio
-        sensor.unregister()
-        assertEquals(sensor.mCsPin, null)
-        assertEquals(sensor.mClockPin, null)
-        assertEquals(sensor.mMosiPin, null)
-        assertEquals(sensor.mMisoPin, null)
+        val mockSensor = spy(MCP3008())
+        mockSensor.peripheralManager = mockPeripheralManager
+        mockSensor.setSpi(DEFAULT_SPI_NAME)
+        doReturn(mockSpiDevice).`when`(mockPeripheralManager).openSpiDevice(DEFAULT_SPI_NAME)
+        mockSensor.register()
+        mockSensor.unregister()
+        verify(mockSpiDevice, times(1)).close()
     }
 
     @Test
     @Throws(IOException::class)
     fun close() {
-        val sensor = MCP3008()
-        sensor.mCsPin = mockCsGpio
-        sensor.mClockPin = mockClockGpio
-        sensor.mMosiPin = mockMosInGpio
-        sensor.mMisoPin = mockMosOutGpio
-        sensor.close()
-        assertEquals(sensor.mCsPin, null)
-        assertEquals(sensor.mClockPin, null)
-        assertEquals(sensor.mMosiPin, null)
-        assertEquals(sensor.mMisoPin, null)
+        val mockSensor = spy(MCP3008())
+        mockSensor.close()
+        verify(mockSensor, times(1)).unregister()
     }
 
     @Test
     @Throws(IOException::class)
     fun close_safeToCallTwice() {
-        val sensor = MCP3008()
-        sensor.mCsPin = mockCsGpio
-        sensor.mClockPin = mockClockGpio
-        sensor.mMosiPin = mockMosInGpio
-        sensor.mMisoPin = mockMosOutGpio
-        sensor.close()
-        sensor.close() // should not throw
-        assertEquals(sensor.mCsPin, null)
-        assertEquals(sensor.mClockPin, null)
-        assertEquals(sensor.mMosiPin, null)
-        assertEquals(sensor.mMisoPin, null)
+        val mockSensor = spy(MCP3008())
+        mockSensor.close()
+        mockSensor.close() // should not throw
+        verify(mockSensor, times(2)).unregister()
     }
 
 }
